@@ -13,6 +13,10 @@ var clock = new THREE.Clock();
 var mouseCoords = new THREE.Vector2();
 var raycaster = new THREE.Raycaster();
 var ballMaterial = new THREE.MeshPhongMaterial({ color: 0x202020 });
+// Animation variables
+var startPos = new THREE.Vector3(0, 10, 40);
+var isStart = false;
+var startGame = false;
 // Physics variables
 var gravityConstant = 7.8;
 var collisionConfiguration;
@@ -48,11 +52,12 @@ function initGraphics() {
 	camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 2000);
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color(0xbfd1e5);
-	camera.position.set(32, 40, 40);
+
+	camera.position.set(40, 60, 40);
 	camera.lookAt(new THREE.Vector3(0, 0, 0));
-	controls = new THREE.OrbitControls( camera );
-	controls.target.set( 0, 2, 0 );
-	controls.update();
+	// controls = new THREE.OrbitControls(camera);
+	// controls.target.set(0, 2, 0);
+	// controls.update();
 	renderer = new THREE.WebGLRenderer();
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -79,7 +84,7 @@ function initGraphics() {
 	stats.domElement.style.position = 'absolute';
 	stats.domElement.style.top = '0px';
 	// -- use for debug
-	// container.appendChild( stats.domElement );
+	container.appendChild(stats.domElement);
 	window.addEventListener('resize', onWindowResize, false);
 }
 function initPhysics() {
@@ -100,6 +105,15 @@ function createObject(mass, halfExtents, pos, quat, material) {
 	convexBreaker.prepareBreakableObject(object, mass, new THREE.Vector3(), new THREE.Vector3(), true);
 	createDebrisFromBreakableObject(object);
 }
+// model
+var onProgress = function (xhr) {
+	if (xhr.lengthComputable) {
+		var percentComplete = xhr.loaded / xhr.total * 100;
+		console.log(Math.round(percentComplete, 2) + '% downloaded');
+	}
+};
+var onError = function () { };
+THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
 function createRoom() {
 	// Ground
 	pos.set(0, -0.5, 0);
@@ -119,33 +133,37 @@ function createRoom() {
 	var wall = createParalellepipedWithPhysics(1, 20, 40, 0, pos, quat, new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
 	wall.receiveShadow = true;
 	// hole wall 1
-	var loader = new THREE.OBJLoader();
-	loader.load('models/holeWall.obj', function(obj) {
-		obj.traverse(function(child) {
-			if (child instanceof THREE.Mesh) {
-				child.material.side = THREE.DoubleSide;
-			}
+	new THREE.MTLLoader()
+		.setPath('models/')
+		.load('holeWall.mtl', function (materials) {
+			materials.preload();
+			new THREE.OBJLoader()
+				.setMaterials(materials)
+				.setPath('models/')
+				.load('holeWall.obj', function (obj) {
+					pos.set(0, 10, -19.5);
+					quat.set(0, 0, 0, 1);
+					var shape = new Ammo.btBoxShape(new Ammo.btVector3(40 * 0.5, 20 * 0.5, 1 * 0.5));
+					shape.setMargin(margin);
+					createRigidBody(obj, shape, 0, pos, quat);
+				}, onProgress, onError);
 		});
-		pos.set(0, 10, -19.5);
-		quat.set(0, 0, 0, 1);
-		var shape = new Ammo.btBoxShape(new Ammo.btVector3(40 * 0.5, 20 * 0.5, 1 * 0.5));
-		shape.setMargin(margin);
-		createRigidBody(obj, shape, 0, pos, quat);
-	});
 	// hole wall 2
-	var loader = new THREE.OBJLoader();
-	loader.load('models/holeWall.obj', function(obj) {
-		obj.traverse(function(child) {
-			if (child instanceof THREE.Mesh) {
-				child.material.side = THREE.DoubleSide;
-			}
+	new THREE.MTLLoader()
+		.setPath('models/')
+		.load('holeWall.mtl', function (materials) {
+			materials.preload();
+			new THREE.OBJLoader()
+				.setMaterials(materials)
+				.setPath('models/')
+				.load('holeWall.obj', function (obj) {
+					pos.set(0, 10, 19.5);
+					quat.set(0, 0, 0, 1);
+					var shape = new Ammo.btBoxShape(new Ammo.btVector3(40 * 0.5, 20 * 0.5, 1 * 0.5));
+					shape.setMargin(margin);
+					createRigidBody(obj, shape, 0, pos, quat);
+				}, onProgress, onError);
 		});
-		pos.set(0, 10, 19.5);
-		quat.set(0, 0, 0, 1);
-		var shape = new Ammo.btBoxShape(new Ammo.btVector3(40 * 0.5, 20 * 0.5, 1 * 0.5));
-		shape.setMargin(margin);
-		createRigidBody(obj, shape, 0, pos, quat);
-	});
 	// Tower 1
 	var towerMass = 1000;
 	var towerHalfExtents = new THREE.Vector3(2, 5, 2);
@@ -156,7 +174,7 @@ function createRoom() {
 	pos.set(8, 5, 0);
 	quat.set(0, 0, 0, 1);
 	createObject(towerMass, towerHalfExtents, pos, quat, createMaterial(0xB03214));
-	//Bridge
+	// Bridge
 	var bridgeMass = 100;
 	var bridgeHalfExtents = new THREE.Vector3(7, 0.2, 1.5);
 	pos.set(0, 10.2, 0);
@@ -268,25 +286,29 @@ function createMaterial(color) {
 }
 function initInput() {
 	window.addEventListener('mousedown', function (event) {
-		mouseCoords.set(
-			(event.clientX / window.innerWidth) * 2 - 1,
-			- (event.clientY / window.innerHeight) * 2 + 1
-		);
-		raycaster.setFromCamera(mouseCoords, camera);
-		var ballMass = 35;
-		var ballRadius = 0.4;
-		var ball = new THREE.Mesh(new THREE.SphereBufferGeometry(ballRadius, 14, 10), ballMaterial);
-		ball.castShadow = true;
-		ball.receiveShadow = true;
-		var ballShape = new Ammo.btSphereShape(ballRadius);
-		ballShape.setMargin(margin);
-		pos.copy(raycaster.ray.direction);
-		pos.add(raycaster.ray.origin);
-		quat.set(0, 0, 0, 1);
-		var ballBody = createRigidBody(ball, ballShape, ballMass, pos, quat);
-		pos.copy(raycaster.ray.direction);
-		pos.multiplyScalar(24);
-		ballBody.setLinearVelocity(new Ammo.btVector3(pos.x, pos.y, pos.z));
+		if (isStart == false) {
+			startGame = true;
+		} else {
+			mouseCoords.set(
+				(event.clientX / window.innerWidth) * 2 - 1,
+				- (event.clientY / window.innerHeight) * 2 + 1
+			);
+			raycaster.setFromCamera(mouseCoords, camera);
+			var ballMass = 35;
+			var ballRadius = 0.4;
+			var ball = new THREE.Mesh(new THREE.SphereBufferGeometry(ballRadius, 14, 10), ballMaterial);
+			ball.castShadow = true;
+			ball.receiveShadow = true;
+			var ballShape = new Ammo.btSphereShape(ballRadius);
+			ballShape.setMargin(margin);
+			pos.copy(raycaster.ray.direction);
+			pos.add(raycaster.ray.origin);
+			quat.set(0, 0, 0, 1);
+			var ballBody = createRigidBody(ball, ballShape, ballMass, pos, quat);
+			pos.copy(raycaster.ray.direction);
+			pos.multiplyScalar(24);
+			ballBody.setLinearVelocity(new Ammo.btVector3(pos.x, pos.y, pos.z));
+		}
 	}, false);
 }
 function onWindowResize() {
@@ -294,7 +316,23 @@ function onWindowResize() {
 	camera.updateProjectionMatrix();
 	renderer.setSize(window.innerWidth, window.innerHeight);
 }
+function startAnimation() {
+	camera.position.x -= 0.005 * 40;
+	camera.position.y -= 0.005 * 50;
+	camera.lookAt(new THREE.Vector3(0, 0, 0));
+	if (camera.position.y == startPos.y) {
+		isStart = true;
+		document.getElementById('info').innerHTML = "Press mouse to throw balls";
+	}
+}
 function animate() {
+	if (isStart == true) {
+		camera.position.z -= 0.05 * 1;
+	} else {
+		if (startGame) {
+			startAnimation();
+		}
+	}
 	requestAnimationFrame(animate);
 	render();
 	stats.update();
@@ -304,9 +342,6 @@ function render() {
 	updatePhysics(deltaTime);
 	renderer.render(scene, camera);
 	time += deltaTime;
-	// move camera
-	var speedFactor = 0.5;
-	//camera.position.z -= deltaTime * speedFactor;
 }
 function updatePhysics(deltaTime) {
 	// Step world
