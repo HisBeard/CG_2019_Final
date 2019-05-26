@@ -9,6 +9,8 @@ if (WEBGL.isWebGLAvailable() === false) {
 var container, stats;
 var camera, controls, scene, renderer;
 var textureLoader;
+var fontModel;
+
 var clock = new THREE.Clock();
 var mouseCoords = new THREE.Vector2();
 var raycaster = new THREE.Raycaster();
@@ -98,6 +100,59 @@ function initPhysics() {
 	transformAux1 = new Ammo.btTransform();
 	tempBtVec3_1 = new Ammo.btVector3(0, 0, 0);
 }
+function initFont() {
+	var font;
+	var loader = new THREE.FontLoader();
+	loader.load("fonts/gentilis_regular.typeface.json", function (res) {
+		font = new THREE.TextBufferGeometry("To be continue", {
+			font: res,
+			size: 6,
+			height: 2
+		});
+
+		font.computeBoundingBox(); // 运行以后设置font的boundingBox属性对象，如果不运行无法获得。
+		//font.computeVertexNormals();
+
+		var map = new THREE.TextureLoader().load("textures/UV_Grid_Sm.jpg");
+		var material = new THREE.MeshLambertMaterial({ map: map, side: THREE.DoubleSide });
+
+		fontModel = new THREE.Mesh(font, material);
+
+		//设置位置
+		fontModel.position.x = -20;
+		fontModel.position.y = 5;
+		fontModel.position.z = -150;
+
+		scene.add(fontModel);
+	});
+
+	loader.load("fonts/gentilis_regular.typeface.json", function (res) {
+		font = new THREE.TextBufferGeometry("Click to start", {
+			font: res,
+			size: 0.9,
+			height: 0.5
+		});
+
+		font.computeBoundingBox(); // 运行以后设置font的boundingBox属性对象，如果不运行无法获得。
+		//font.computeVertexNormals();
+
+		var map = new THREE.TextureLoader().load("textures/UV_Grid_Sm.jpg");
+		var material = new THREE.MeshLambertMaterial({ map: map, side: THREE.DoubleSide });
+
+		fontModel = new THREE.Mesh(font, material);
+
+
+		fontModel.rotateX(-Math.PI/4);
+		fontModel.rotateY(Math.PI/6);
+		fontModel.rotateZ(Math.PI/6);
+		//设置位置
+		fontModel.position.x = 35;
+		fontModel.position.y = 56;
+		fontModel.position.z = 40;
+
+		scene.add(fontModel);
+	});
+}
 function createObject(mass, halfExtents, pos, quat, material) {
 	var object = new THREE.Mesh(new THREE.BoxBufferGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2), material);
 	object.position.copy(pos);
@@ -114,7 +169,7 @@ var onProgress = function (xhr) {
 };
 var onError = function () { };
 THREE.Loader.Handlers.add(/\.dds$/i, new THREE.DDSLoader());
-function createRoom() {
+function createRoom1() {
 	// Ground
 	pos.set(0, -0.5, 0);
 	quat.set(0, 0, 0, 1);
@@ -166,7 +221,7 @@ function createRoom() {
 		});
 	// Tower 1
 	var towerMass = 1000;
-	var towerHalfExtents = new THREE.Vector3(2, 5, 2);
+	var towerHalfExtents = new THREE.Vector3(2, 7, 2);
 	pos.set(-8, 5, 0);
 	quat.set(0, 0, 0, 1);
 	createObject(towerMass, towerHalfExtents, pos, quat, createMaterial(0xB03014));
@@ -177,22 +232,22 @@ function createRoom() {
 	// Bridge
 	var bridgeMass = 100;
 	var bridgeHalfExtents = new THREE.Vector3(7, 0.2, 1.5);
-	pos.set(0, 10.2, 0);
+	pos.set(0, 15.2, 0);
 	quat.set(0, 0, 0, 1);
 	createObject(bridgeMass, bridgeHalfExtents, pos, quat, createMaterial(0xB3B865));
 	// Stones
 	var stoneMass = 120;
-	var stoneHalfExtents = new THREE.Vector3(1, 2, 0.15);
+	var stoneHalfExtents = new THREE.Vector3(2, 6, 0.3);
 	var numStones = 8;
 	quat.set(0, 0, 0, 1);
 	for (var i = 0; i < numStones; i++) {
-		pos.set(0, 2, 15 * (0.5 - i / (numStones + 1)));
+		pos.set(0, 2, 18 * (0.5 - i / (numStones + 1)));
 		createObject(stoneMass, stoneHalfExtents, pos, quat, createMaterial(0xB0B0B0));
 	}
 	// Mountain
 	var mountainMass = 860;
-	var mountainHalfExtents = new THREE.Vector3(4, 5, 4);
-	pos.set(5, mountainHalfExtents.y * 0.5, - 7);
+	var mountainHalfExtents = new THREE.Vector3(5, 6, 5);
+	pos.set(5, mountainHalfExtents.y * 0.5, - 10);
 	quat.set(0, 0, 0, 1);
 	var mountainPoints = [];
 	mountainPoints.push(new THREE.Vector3(mountainHalfExtents.x, - mountainHalfExtents.y, mountainHalfExtents.z));
@@ -205,6 +260,81 @@ function createRoom() {
 	mountain.quaternion.copy(quat);
 	convexBreaker.prepareBreakableObject(mountain, mountainMass, new THREE.Vector3(), new THREE.Vector3(), true);
 	createDebrisFromBreakableObject(mountain);
+}
+function createRoom2() {
+	// Ground
+	pos.set(0, -0.5, -40);
+	quat.set(0, 0, 0, 1);
+	var ground = createParalellepipedWithPhysics(40, 1, 40, 0, pos, quat, new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
+	ground.receiveShadow = true;
+	textureLoader.load("textures/grid.png", function (texture) {
+		texture.wrapS = THREE.RepeatWrapping;
+		texture.wrapT = THREE.RepeatWrapping;
+		texture.repeat.set(40, 40);
+		ground.material.map = texture;
+		ground.material.needsUpdate = true;
+	});
+	// wall 1
+	pos.set(-19.5, 10, -40);
+	quat.set(0, 0, 0, 1);
+	var wall = createParalellepipedWithPhysics(1, 20, 40, 0, pos, quat, new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
+	wall.receiveShadow = true;
+	// hole wall 1
+	new THREE.MTLLoader()
+		.setPath('models/')
+		.load('holeWall.mtl', function (materials) {
+			materials.preload();
+			new THREE.OBJLoader()
+				.setMaterials(materials)
+				.setPath('models/')
+				.load('holeWall.obj', function (obj) {
+					pos.set(0, 10, -59.5);
+					quat.set(0, 0, 0, 1);
+					var shape = new Ammo.btBoxShape(new Ammo.btVector3(40 * 0.5, 20 * 0.5, 1 * 0.5));
+					shape.setMargin(margin);
+					createRigidBody(obj, shape, 0, pos, quat);
+				}, onProgress, onError);
+		});
+}
+function createRoom3() {
+	// Ground
+	pos.set(0, -0.5, -80);
+	quat.set(0, 0, 0, 1);
+	var ground = createParalellepipedWithPhysics(40, 1, 40, 0, pos, quat, new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
+	ground.receiveShadow = true;
+	textureLoader.load("textures/grid.png", function (texture) {
+		texture.wrapS = THREE.RepeatWrapping;
+		texture.wrapT = THREE.RepeatWrapping;
+		texture.repeat.set(40, 40);
+		ground.material.map = texture;
+		ground.material.needsUpdate = true;
+	});
+	// wall 1
+	pos.set(-19.5, 10, -80);
+	quat.set(0, 0, 0, 1);
+	var wall = createParalellepipedWithPhysics(1, 20, 40, 0, pos, quat, new THREE.MeshPhongMaterial({ color: 0xFFFFFF }));
+	wall.receiveShadow = true;
+	// hole wall 1
+	new THREE.MTLLoader()
+		.setPath('models/')
+		.load('holeWall.mtl', function (materials) {
+			materials.preload();
+			new THREE.OBJLoader()
+				.setMaterials(materials)
+				.setPath('models/')
+				.load('holeWall.obj', function (obj) {
+					pos.set(0, 10, -99.5);
+					quat.set(0, 0, 0, 1);
+					var shape = new Ammo.btBoxShape(new Ammo.btVector3(40 * 0.5, 20 * 0.5, 1 * 0.5));
+					shape.setMargin(margin);
+					createRigidBody(obj, shape, 0, pos, quat);
+				}, onProgress, onError);
+		});
+}
+function createRooms() {
+	createRoom1();
+	createRoom2();
+	createRoom3();
 }
 function createParalellepipedWithPhysics(sx, sy, sz, mass, pos, quat, material) {
 	var object = new THREE.Mesh(new THREE.BoxBufferGeometry(sx, sy, sz, 1, 1, 1), material);
@@ -448,6 +578,7 @@ if (typeof document.onselectstart != "undefined") {
 function init() {
 	initGraphics();
 	initPhysics();
-	createRoom();
+	createRooms();
 	initInput();
+	initFont();
 }
