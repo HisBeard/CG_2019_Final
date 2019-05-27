@@ -119,7 +119,7 @@ function initFont() {
 		fontModel = new THREE.Mesh(font, material);
 
 		//设置位置
-		fontModel.position.x = -20;
+		fontModel.position.x = -25;
 		fontModel.position.y = 5;
 		fontModel.position.z = -150;
 
@@ -142,9 +142,9 @@ function initFont() {
 		fontModel = new THREE.Mesh(font, material);
 
 
-		fontModel.rotateX(-Math.PI/4);
-		fontModel.rotateY(Math.PI/6);
-		fontModel.rotateZ(Math.PI/6);
+		fontModel.rotateX(-Math.PI / 4);
+		fontModel.rotateY(Math.PI / 6);
+		fontModel.rotateZ(Math.PI / 6);
 		//设置位置
 		fontModel.position.x = 35;
 		fontModel.position.y = 56;
@@ -244,22 +244,6 @@ function createRoom1() {
 		pos.set(0, 2, 18 * (0.5 - i / (numStones + 1)));
 		createObject(stoneMass, stoneHalfExtents, pos, quat, createMaterial(0xB0B0B0));
 	}
-	// Mountain
-	var mountainMass = 860;
-	var mountainHalfExtents = new THREE.Vector3(5, 6, 5);
-	pos.set(5, mountainHalfExtents.y * 0.5, - 10);
-	quat.set(0, 0, 0, 1);
-	var mountainPoints = [];
-	mountainPoints.push(new THREE.Vector3(mountainHalfExtents.x, - mountainHalfExtents.y, mountainHalfExtents.z));
-	mountainPoints.push(new THREE.Vector3(- mountainHalfExtents.x, - mountainHalfExtents.y, mountainHalfExtents.z));
-	mountainPoints.push(new THREE.Vector3(mountainHalfExtents.x, - mountainHalfExtents.y, - mountainHalfExtents.z));
-	mountainPoints.push(new THREE.Vector3(- mountainHalfExtents.x, - mountainHalfExtents.y, - mountainHalfExtents.z));
-	mountainPoints.push(new THREE.Vector3(0, mountainHalfExtents.y, 0));
-	var mountain = new THREE.Mesh(new THREE.ConvexBufferGeometry(mountainPoints), createMaterial(0xB03814));
-	mountain.position.copy(pos);
-	mountain.quaternion.copy(quat);
-	convexBreaker.prepareBreakableObject(mountain, mountainMass, new THREE.Vector3(), new THREE.Vector3(), true);
-	createDebrisFromBreakableObject(mountain);
 }
 function createRoom2() {
 	// Ground
@@ -295,6 +279,22 @@ function createRoom2() {
 					createRigidBody(obj, shape, 0, pos, quat);
 				}, onProgress, onError);
 		});
+	// Pyramid
+	var mountainMass = 860;
+	var mountainHalfExtents = new THREE.Vector3(12, 8, 12);
+	pos.set(0, mountainHalfExtents.y * 0.5, - 40);
+	quat.set(0, 0, 0, 1);
+	var mountainPoints = [];
+	mountainPoints.push(new THREE.Vector3(mountainHalfExtents.x, - mountainHalfExtents.y, mountainHalfExtents.z));
+	mountainPoints.push(new THREE.Vector3(- mountainHalfExtents.x, - mountainHalfExtents.y, mountainHalfExtents.z));
+	mountainPoints.push(new THREE.Vector3(mountainHalfExtents.x, - mountainHalfExtents.y, - mountainHalfExtents.z));
+	mountainPoints.push(new THREE.Vector3(- mountainHalfExtents.x, - mountainHalfExtents.y, - mountainHalfExtents.z));
+	mountainPoints.push(new THREE.Vector3(0, mountainHalfExtents.y, 0));
+	var mountain = new THREE.Mesh(new THREE.ConvexBufferGeometry(mountainPoints), createMaterial(0xEDBD65));
+	mountain.position.copy(pos);
+	mountain.quaternion.copy(quat);
+	convexBreaker.prepareBreakableObject(mountain, mountainMass, new THREE.Vector3(), new THREE.Vector3(), true);
+	createDebrisFromBreakableObject(mountain);
 }
 function createRoom3() {
 	// Ground
@@ -330,6 +330,31 @@ function createRoom3() {
 					createRigidBody(obj, shape, 0, pos, quat);
 				}, onProgress, onError);
 		});
+	
+	// heart
+	// bottom
+	var stoneMass = 100;
+	var stoneHalfExtents = new THREE.Vector3(3, 0.8, 2);
+	var numStones = 7;
+	var scaleFactor = 1.5;
+	quat.set(0, 0, 0, 1);
+	for (var i = 0; i < numStones; i++) {
+		pos.set(0, stoneHalfExtents.y * (i + 1), -80);
+		stoneHalfExtents.x = stoneHalfExtents.x * scaleFactor;
+		scaleFactor *= 0.93;
+		createObject(stoneMass, stoneHalfExtents, pos, quat, createMaterial(0xEB7897));
+	}
+	// top
+	numStones = 3;
+	scaleFactor = 0.7;
+	stoneHalfExtents = new THREE.Vector3(4, 0.5, 2);
+	for (var i = 0; i < numStones; i++) {
+		pos.set(0.3 * (25 - stoneHalfExtents.x), 8 + stoneHalfExtents.y * (i + 1), -80);
+		createObject(stoneMass, stoneHalfExtents, pos, quat, createMaterial(0xEB7897));
+		pos.set(0.3 * (-25 + stoneHalfExtents.x), 8 + stoneHalfExtents.y * (i + 1), -80);
+		createObject(stoneMass, stoneHalfExtents, pos, quat, createMaterial(0xEB7897));
+		stoneHalfExtents.x = stoneHalfExtents.x * scaleFactor;
+	}
 }
 function createRooms() {
 	createRoom1();
