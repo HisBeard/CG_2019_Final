@@ -437,12 +437,12 @@ void RenderScene(Shader &shader, unsigned int diffuseMap, unsigned int container
 {
 	// Floor
 	glm::mat4 model;
-	/*shader.setMat4("model", model);
+	shader.setMat4("model", model);
 	shader.setVec3("objectColor", glm::vec3(0.7f, 1.0f, 1.0f));
 	shader.setBool("typeColor", true);
 	glBindVertexArray(planeVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindVertexArray(0);*/
+	glBindVertexArray(0);
 	// Cubes
 	glm::vec3 cubePosition[] = {
 		//right
