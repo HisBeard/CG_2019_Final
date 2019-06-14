@@ -1,3 +1,4 @@
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "shader_s.h"
@@ -20,9 +21,10 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+
+
 using namespace std;
 using namespace ImGui;
-
 struct Character {
 	GLuint TextureID;
 	glm::ivec2 Size;
@@ -48,6 +50,7 @@ unsigned int VBO = 0;
 unsigned int cubeVAO = 0;
 GLuint textVAO, textVBO;
 
+
 Camera camera(glm::vec3(0.0f, 8.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
@@ -64,7 +67,6 @@ float rightTo = 3.0f;
 //wall
 std::map<int, glm::vec3> wall;
 std::map<GLchar, Character> Characters;
-
 int main() {
 	// glfw: initialize and configure
 	// ------------------------------
@@ -72,7 +74,6 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
 	// glfw window creation
 	// --------------------
@@ -105,7 +106,7 @@ int main() {
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -118,14 +119,14 @@ int main() {
 	Shader modelShader(".\\shader\\model.vs", ".\\shader\\model.fs");
 	Shader skyboxShader(".\\shader\\skybox.vs", ".\\shader\\skybox.fs");
 	Shader textShader(".\\shader\\text.vs", ".\\shader\\text.fs");
-	
+
 	//TEXT prepare
 	glm::mat4 textProjection = glm::ortho(0.0f, static_cast<GLfloat>(SCR_WIDTH), 0.0f, static_cast<GLfloat>(SCR_HEIGHT));
 	textShader.use();
 	glUniformMatrix4fv(glGetUniformLocation(textShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(textProjection));
-	
+
 	FT_Library ft;
-	if(FT_Init_FreeType(&ft))
+	if (FT_Init_FreeType(&ft))
 		std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
 
 	// Load font as face
@@ -181,7 +182,7 @@ int main() {
 	// Destroy FreeType once we're finished
 	FT_Done_Face(face);
 	FT_Done_FreeType(ft);
-	
+
 	//data
 	float vertices[] = {
 		// positions          // normals           // texture coords
@@ -392,13 +393,14 @@ int main() {
 	depthQuad.setInt("depthMap", 0);
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
-	textShader.use();
+
 
 	//render param
 	int mode = 1;
 	float posx = -16.0f;
 	float posy = 4.2f;
 	float posz = 0.05f;
+
 
 	//render loop
 	while (!glfwWindowShouldClose(window))
@@ -408,7 +410,6 @@ int main() {
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
-		
 		//create gui
 		//----------
 		ImGui_ImplOpenGL3_NewFrame();
@@ -515,8 +516,8 @@ int main() {
 		textShader.setMat4("projection", projection);
 		model = glm::translate(model, glm::vec3(2.5f, -1.0f, -1.0f));
 		textShader.setMat4("model", model);
-		RenderText(textShader, "Hello", posx, posy, posz, glm::vec3(0.5, 0.8f, 0.2f));
-		
+		RenderText(textShader, "Maze Game", posx, posy, posz, glm::vec3(0.5, 0.8f, 0.2f));
+
 		//render window
 		//-------------
 		ImGui::Render();
@@ -538,12 +539,12 @@ void RenderScene(Shader &shader, unsigned int diffuseMap, unsigned int container
 {
 	// Floor
 	glm::mat4 model;
-	/*shader.setMat4("model", model);
+	shader.setMat4("model", model);
 	shader.setVec3("objectColor", glm::vec3(0.7f, 1.0f, 1.0f));
 	shader.setBool("typeColor", true);
 	glBindVertexArray(planeVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindVertexArray(0);*/
+	glBindVertexArray(0);
 	// Cubes
 	glm::vec3 cubePosition[] = {
 		//right
@@ -846,8 +847,9 @@ void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat 
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
-		x += (ch.Advance >> 6) * scale; 
+		x += (ch.Advance >> 6) * scale;
 	}
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
+
