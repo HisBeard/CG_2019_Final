@@ -14,7 +14,7 @@ Group18_FinalProject_v0
 
         |-- Hole
 
-        |-- bin/
+    |-- bin/
 
 #### 运行：
 
