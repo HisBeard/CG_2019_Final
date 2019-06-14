@@ -1,4 +1,3 @@
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "shader_s.h"
@@ -18,11 +17,20 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "Model.h"
-
-
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 using namespace std;
 using namespace ImGui;
+
+struct Character {
+	GLuint TextureID;
+	glm::ivec2 Size;
+	glm::ivec2 Bearing;
+	GLuint Advance;
+};
+
+void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -38,6 +46,7 @@ glm::vec3 lightPos(1.8f, 4.0f, 0.7f);
 GLuint planeVAO;
 unsigned int VBO = 0;
 unsigned int cubeVAO = 0;
+GLuint textVAO, textVBO;
 
 Camera camera(glm::vec3(0.0f, 8.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
@@ -54,6 +63,7 @@ float rightTo = 3.0f;
 
 //wall
 std::map<int, glm::vec3> wall;
+std::map<GLchar, Character> Characters;
 
 int main() {
 	// glfw: initialize and configure
@@ -62,6 +72,7 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
 	// glfw window creation
 	// --------------------
@@ -94,6 +105,10 @@ int main() {
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
 	//shader
 	Shader depthShader(".\\shader\\shadow_mapping_depth.vs", ".\\shader\\shadow_mapping_depth.fs");
@@ -102,7 +117,71 @@ int main() {
 	Shader lampShader(".\\shader\\lamp.vs", ".\\shader\\lamp.fs");
 	Shader modelShader(".\\shader\\model.vs", ".\\shader\\model.fs");
 	Shader skyboxShader(".\\shader\\skybox.vs", ".\\shader\\skybox.fs");
+	Shader textShader(".\\shader\\text.vs", ".\\shader\\text.fs");
+	
+	//TEXT prepare
+	glm::mat4 textProjection = glm::ortho(0.0f, static_cast<GLfloat>(SCR_WIDTH), 0.0f, static_cast<GLfloat>(SCR_HEIGHT));
+	textShader.use();
+	glUniformMatrix4fv(glGetUniformLocation(textShader.ID, "projection"), 1, GL_FALSE, glm::value_ptr(textProjection));
+	
+	FT_Library ft;
+	if(FT_Init_FreeType(&ft))
+		std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
 
+	// Load font as face
+	FT_Face face;
+	if (FT_New_Face(ft, ".\\resources\\arial.ttf", 0, &face))
+		std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+
+	// Set size to load glyphs as
+	FT_Set_Pixel_Sizes(face, 0, 64);
+
+	// Disable byte-alignment restriction
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	// Load first 128 characters of ASCII set
+	for (GLubyte c = 0; c < 128; c++)
+	{
+		// Load character glyph 
+		if (FT_Load_Char(face, c, FT_LOAD_RENDER))
+		{
+			std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+			continue;
+		}
+		// Generate texture
+		GLuint texture;
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RED,
+			face->glyph->bitmap.width,
+			face->glyph->bitmap.rows,
+			0,
+			GL_RED,
+			GL_UNSIGNED_BYTE,
+			face->glyph->bitmap.buffer
+		);
+		// Set texture options
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// Now store character for later use
+		Character character = {
+			texture,
+			glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+			glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
+			face->glyph->advance.x
+		};
+		Characters.insert(std::pair<GLchar, Character>(c, character));
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+	// Destroy FreeType once we're finished
+	FT_Done_Face(face);
+	FT_Done_FreeType(ft);
+	
 	//data
 	float vertices[] = {
 		// positions          // normals           // texture coords
@@ -281,6 +360,17 @@ int main() {
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
+	//text VAO
+	glGenVertexArrays(1, &textVAO);
+	glGenBuffers(1, &textVBO);
+	glBindVertexArray(textVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
 	vector<std::string> faces
 	{
 		"./resources/skybox/right.jpg",
@@ -302,10 +392,13 @@ int main() {
 	depthQuad.setInt("depthMap", 0);
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
-
+	textShader.use();
 
 	//render param
 	int mode = 1;
+	float posx = -16.0f;
+	float posy = 4.2f;
+	float posz = 0.05f;
 
 	//render loop
 	while (!glfwWindowShouldClose(window))
@@ -315,6 +408,7 @@ int main() {
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+		
 		//create gui
 		//----------
 		ImGui_ImplOpenGL3_NewFrame();
@@ -415,7 +509,14 @@ int main() {
 		glBindVertexArray(0);
 		glDepthFunc(GL_LESS);
 
-
+		// render text
+		textShader.use();
+		textShader.setMat4("view", view);
+		textShader.setMat4("projection", projection);
+		model = glm::translate(model, glm::vec3(2.5f, -1.0f, -1.0f));
+		textShader.setMat4("model", model);
+		RenderText(textShader, "Hello", posx, posy, posz, glm::vec3(0.5, 0.8f, 0.2f));
+		
 		//render window
 		//-------------
 		ImGui::Render();
@@ -437,12 +538,12 @@ void RenderScene(Shader &shader, unsigned int diffuseMap, unsigned int container
 {
 	// Floor
 	glm::mat4 model;
-	shader.setMat4("model", model);
+	/*shader.setMat4("model", model);
 	shader.setVec3("objectColor", glm::vec3(0.7f, 1.0f, 1.0f));
 	shader.setBool("typeColor", true);
 	glBindVertexArray(planeVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindVertexArray(0);
+	glBindVertexArray(0);*/
 	// Cubes
 	glm::vec3 cubePosition[] = {
 		//right
@@ -708,3 +809,45 @@ unsigned int loadCubemap(vector<std::string> faces)
 	return textureID;
 }
 
+void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
+{
+	// Activate corresponding render state	
+	shader.use();
+	glUniform3f(glGetUniformLocation(shader.ID, "textColor"), color.x, color.y, color.z);
+	glActiveTexture(GL_TEXTURE0);
+	glBindVertexArray(textVAO);
+
+	// Iterate through all characters
+	std::string::const_iterator c;
+	for (c = text.begin(); c != text.end(); c++)
+	{
+		Character ch = Characters[*c];
+
+		GLfloat xpos = x + ch.Bearing.x * scale;
+		GLfloat ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+		GLfloat w = ch.Size.x * scale;
+		GLfloat h = ch.Size.y * scale;
+		// Update VBO for each character
+		GLfloat textvertices[6][4] = {
+			{ xpos,     ypos + h,   0.0, 0.0 },
+			{ xpos,     ypos,       0.0, 1.0 },
+			{ xpos + w, ypos,       1.0, 1.0 },
+
+			{ xpos,     ypos + h,   0.0, 0.0 },
+			{ xpos + w, ypos,       1.0, 1.0 },
+			{ xpos + w, ypos + h,   1.0, 0.0 }
+		};
+		// Render glyph texture over quad
+		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+		// Update content of VBO memory
+		glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(textvertices), textvertices); // Be sure to use glBufferSubData and not glBufferData
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		x += (ch.Advance >> 6) * scale; 
+	}
+	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
