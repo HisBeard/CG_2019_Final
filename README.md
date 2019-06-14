@@ -6,17 +6,15 @@ CG final group project
 
 Group18_FinalProject_v0
 
-​    |-- doc/
+    |-- doc/
 
-​    |-- src/
+    |-- src/
 
-​        |-- Maze
+        |-- Maze
 
-​        |-- Hole
+        |-- Hole
 
-​    |-- bin/
-
-
+        |-- bin/
 
 #### 运行：
 
