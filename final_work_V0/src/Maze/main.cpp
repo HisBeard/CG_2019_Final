@@ -6,9 +6,9 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+#include <Imgui/imgui.h>
+#include <Imgui/imgui_impl_glfw.h>
+#include <Imgui/imgui_impl_opengl3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -20,6 +20,7 @@
 #include "Model.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include "ParticleSystem.h"
 
 
 
@@ -119,6 +120,12 @@ int main() {
 	Shader modelShader(".\\shader\\model.vs", ".\\shader\\model.fs");
 	Shader skyboxShader(".\\shader\\skybox.vs", ".\\shader\\skybox.fs");
 	Shader textShader(".\\shader\\text.vs", ".\\shader\\text.fs");
+	Shader snowShader("./shader/SnowParticle.vs", "./shader/SnowParticle.fs");
+
+	//snow particle
+	ParticleSystem snowParticle(10000, 10000);
+	snowParticle.shader = snowShader;
+
 
 	//TEXT prepare
 	glm::mat4 textProjection = glm::ortho(0.0f, static_cast<GLfloat>(SCR_WIDTH), 0.0f, static_cast<GLfloat>(SCR_HEIGHT));
@@ -517,6 +524,11 @@ int main() {
 		model = glm::translate(model, glm::vec3(2.5f, -1.0f, -1.0f));
 		textShader.setMat4("model", model);
 		RenderText(textShader, "Maze Game", posx, posy, posz, glm::vec3(0.5, 0.8f, 0.2f));
+
+
+		//particle
+		snowParticle.Update(deltaTime);
+		snowParticle.Render();
 
 		//render window
 		//-------------
