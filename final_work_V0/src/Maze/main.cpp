@@ -6,9 +6,9 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include <Imgui/imgui.h>
-#include <Imgui/imgui_impl_glfw.h>
-#include <Imgui/imgui_impl_opengl3.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -21,8 +21,6 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include "ParticleSystem.h"
-
-
 
 using namespace std;
 using namespace ImGui;
@@ -50,7 +48,7 @@ GLuint planeVAO;
 unsigned int VBO = 0;
 unsigned int cubeVAO = 0;
 GLuint textVAO, textVBO;
-
+unsigned int floorVAO, floorVBO;
 
 Camera camera(glm::vec3(0.0f, 8.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
@@ -121,6 +119,7 @@ int main() {
 	Shader skyboxShader(".\\shader\\skybox.vs", ".\\shader\\skybox.fs");
 	Shader textShader(".\\shader\\text.vs", ".\\shader\\text.fs");
 	Shader snowShader("./shader/SnowParticle.vs", "./shader/SnowParticle.fs");
+	Shader treeShader(".\\shader\\model.vs", ".\\shader\\model.fs");
 
 	//snow particle
 	ParticleSystem snowParticle(10000, 10000);
@@ -290,6 +289,31 @@ int main() {
 		 1.0f, -1.0f,  1.0f
 	};
 
+	// floor vertices
+	float floorVertices[] = {
+		 10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
+		-10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+		-10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
+		 10.0f, -0.5f,  10.0f,  0.0f, 1.0f, 0.0f,  10.0f,  0.0f,
+		-10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
+		 10.0f, -0.5f, -10.0f,  0.0f, 1.0f, 0.0f,  10.0f, 10.0f
+	};
+
+	//floor VAO VBO
+	glGenVertexArrays(1, &floorVAO);
+	glBindVertexArray(floorVAO);
+
+	glGenBuffers(1, &floorVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glBindVertexArray(0);
+
 	//object configure
 	glGenVertexArrays(1, &cubeVAO);
 	glGenBuffers(1, &VBO);
@@ -317,6 +341,7 @@ int main() {
 	unsigned int diffuseMap = loadTexture(".\\resources\\wood.png");
 	unsigned int containerMap = loadTexture(".\\resources\\container2.png");
 	Model ourModel("./resources/nanosuit/nanosuit.obj");
+	Model treeModel("./resources/tree/tree1.obj");
 
 	//plane configure
 	GLuint planeVBO;
@@ -381,12 +406,12 @@ int main() {
 
 	vector<std::string> faces
 	{
-		"./resources/skybox/right.jpg",
-		"./resources/skybox/left.jpg",
-		"./resources/skybox/top.jpg",
-		"./resources/skybox/bottom.jpg",
-		"./resources/skybox/front.jpg",
-		"./resources/skybox/back.jpg"
+		"./resources/skybox/Newdawn1_right.jpg",
+		"./resources/skybox/Newdawn1_left.jpg",
+		"./resources/skybox/Newdawn1_up.jpg",
+		"./resources/skybox/Newdawn1_down.jpg",
+		"./resources/skybox/Newdawn1_back.jpg",
+		"./resources/skybox/Newdawn1_front.jpg"
 	};
 	unsigned int cubemapTexture = loadCubemap(faces);
 
@@ -485,7 +510,7 @@ int main() {
 		lampShader.use();
 		lampShader.setMat4("projection", projection);
 		lampShader.setMat4("view", view);
-		glm::mat4 model = glm::mat4();
+		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPos);
 		model = glm::scale(model, glm::vec3(0.2f)); 
 		lampShader.setMat4("model", model);
@@ -502,6 +527,22 @@ int main() {
 		model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	
 		modelShader.setMat4("model", model);
 		ourModel.Draw(modelShader);
+
+		//tree shading
+		treeShader.use();
+		treeShader.setMat4("projection", projection);
+		treeShader.setMat4("view", view);
+		glm::mat4 mymodel = glm::mat4(1.0f);
+		float tempx[8] = { -1.2, -1.8, -2.5, -4.4, 1.2, 1.8, 2.5, 3.4 };
+		float tempy[8] = { 0.2, 0.6, 1.5, 0.2, 0.6, 1.5, 0.2, 0.6 };
+		float tempz[8] = { -2.3, -4.4, -3.2, -5.6, -2.3, -4.4, -3.2, -5.1 };
+		for (int iter = 0; iter < 8; iter++) {
+			mymodel = glm::mat4(1.0f);
+			mymodel = glm::translate(mymodel, glm::vec3(tempx[iter], tempy[iter], tempz[iter]));
+			mymodel = glm::scale(mymodel, glm::vec3(0.2f, 0.2f, 0.2f));
+			treeShader.setMat4("model", mymodel);
+			treeModel.Draw(modelShader);
+		}
 
 		// draw skybox as last
 		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -550,7 +591,7 @@ int main() {
 void RenderScene(Shader &shader, unsigned int diffuseMap, unsigned int containerMap)
 {
 	// Floor
-	glm::mat4 model;
+	glm::mat4 model = glm::mat4(1.0f);
 	shader.setMat4("model", model);
 	shader.setVec3("objectColor", glm::vec3(0.7f, 1.0f, 1.0f));
 	shader.setBool("typeColor", true);
@@ -609,7 +650,7 @@ void RenderScene(Shader &shader, unsigned int diffuseMap, unsigned int container
 	for (int i = 0; i < sizeof(cubePosition)/sizeof(cubePosition[0]); i++) {
 		glm::vec3 temp = cubePosition[i];
 		wall[i] = temp;
-		model = glm::mat4();
+		model = glm::mat4(1.0f);
 		model = glm::translate(model, temp);
 		//for shadow
 		shader.setMat4("model", model);
@@ -621,7 +662,7 @@ void RenderScene(Shader &shader, unsigned int diffuseMap, unsigned int container
 		glBindVertexArray(0);
 	}
 	//Cube2
-	model = glm::mat4();
+	model = glm::mat4(1.0f);
 	glm::vec3 moveposition = glm::vec3(roundf(forwardTo), 0.0f, roundf(rightTo));
 	model = glm::translate(model, moveposition);
 	shader.setMat4("model", model);
