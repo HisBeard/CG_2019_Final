@@ -1,4 +1,3 @@
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "shader_s.h"
@@ -341,7 +340,7 @@ int main() {
 	unsigned int diffuseMap = loadTexture(".\\resources\\wood.png");
 	unsigned int containerMap = loadTexture(".\\resources\\container2.png");
 	Model ourModel("./resources/nanosuit/nanosuit.obj");
-	Model treeModel("./resources/tree/tree1.obj");
+	Model treeModel("./resources/Christmas Tree.obj");
 
 	//plane configure
 	GLuint planeVBO;
@@ -357,7 +356,7 @@ int main() {
 	glBindVertexArray(0);
 
 	//depth map FBO configure
-	const GLuint SHADOW_WIDTH=4096, SHADOW_HEIGHT = 4096;
+	const GLuint SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 
 	GLuint depthMapFBO;
 	glGenFramebuffers(1, &depthMapFBO);
@@ -512,7 +511,7 @@ int main() {
 		lampShader.setMat4("view", view);
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f)); 
+		model = glm::scale(model, glm::vec3(0.2f));
 		lampShader.setMat4("model", model);
 
 		glBindVertexArray(lightVAO);
@@ -523,8 +522,8 @@ int main() {
 		modelShader.setMat4("projection", projection);
 		modelShader.setMat4("view", view);
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(1.0f, -0.5f, -1.0f)); 
-		model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	
+		model = glm::translate(model, glm::vec3(1.0f, -0.5f, -1.0f));
+		model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
 		modelShader.setMat4("model", model);
 		ourModel.Draw(modelShader);
 
@@ -533,13 +532,13 @@ int main() {
 		treeShader.setMat4("projection", projection);
 		treeShader.setMat4("view", view);
 		glm::mat4 mymodel = glm::mat4(1.0f);
-		float tempx[8] = { -1.2, -1.8, -2.5, -4.4, 1.2, 1.8, 2.5, 3.4 };
-		float tempy[8] = { 0.2, 0.6, 1.5, 0.2, 0.6, 1.5, 0.2, 0.6 };
-		float tempz[8] = { -2.3, -4.4, -3.2, -5.6, -2.3, -4.4, -3.2, -5.1 };
+		float tempx[8] = { 7.0, 4.0, -1.0, 1.0, 5.0, 4.0, 0.0, 7.0 };
+		float tempy[8] = { 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55 };
+		float tempz[8] = { 7.0, 7.0, 6.0, 1.0, 1.0, 2.0, -1.0, 2.0 };
 		for (int iter = 0; iter < 8; iter++) {
 			mymodel = glm::mat4(1.0f);
 			mymodel = glm::translate(mymodel, glm::vec3(tempx[iter], tempy[iter], tempz[iter]));
-			mymodel = glm::scale(mymodel, glm::vec3(0.2f, 0.2f, 0.2f));
+			mymodel = glm::scale(mymodel, glm::vec3(0.05f, 0.05f, 0.05f));
 			treeShader.setMat4("model", mymodel);
 			treeModel.Draw(modelShader);
 		}
@@ -647,7 +646,7 @@ void RenderScene(Shader &shader, unsigned int diffuseMap, unsigned int container
 		glm::vec3(2.0f, 0.0f, 3.0f),
 		glm::vec3(4.0f, 0.0f, 2.0f),
 	};
-	for (int i = 0; i < sizeof(cubePosition)/sizeof(cubePosition[0]); i++) {
+	for (int i = 0; i < sizeof(cubePosition) / sizeof(cubePosition[0]); i++) {
 		glm::vec3 temp = cubePosition[i];
 		wall[i] = temp;
 		model = glm::mat4(1.0f);
@@ -905,4 +904,3 @@ void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat 
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
-
