@@ -19,6 +19,7 @@ Group18_FinalProject_v0
 #### Maze项目运行：
 
 直接双击exe文件运行，运行环境为windows系统。  
+这里有两个exe文件，原因是final+particlesystem.exe这个文件是添加了粒子系统的可执行文件，但是物体移动就会特别卡顿，主要展示的是粒子效果，解决卡顿的方法还没有找到。而final.exe文件是可以流畅运行的版本。
 
 #### Maze项目操作方式：  
 
