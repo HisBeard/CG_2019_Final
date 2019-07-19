@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <stb_image.h>
 #include "shader_s.h"
 #include <random>
 
@@ -31,10 +30,9 @@ int randInt(int from, int to) {
 
 
 struct SnowParticle {
-	glm::vec3 position;
-	glm::vec3 speed;
-	GLuint lifespan;
-	bool bounced;
+	glm::vec3 position;//位置
+	glm::vec3 speed;//速度
+	GLuint lifespan;//生命周期
 };
 
 
@@ -45,15 +43,15 @@ public:
 		GLuint particleLifespan = DEFAULT_PARTICLE_LIFESPAN);
 	//析构
 	~ParticleSystem();
-	//渲染，普通的渲染函数就是渲染每一粒存在的粒子
+	//渲染函数
 	void Render();
-	//更新粒子的信息，纯虚函数，不同的粒子系统肯定有不同的实现
+	//更新粒子的信息
 	void Update(GLfloat deltaTime);
 
 	Shader shader;
 
 protected:
-	
+	//渲染每一粒存在的粒子
 	void RenderParticle(const SnowParticle& p);
 	//创建和销毁粒子，由Update函数调用
 	void CreateParticle(SnowParticle p);
@@ -118,10 +116,9 @@ void ParticleSystem::Update(GLfloat deltatime) {
 	SnowParticle snowParticle;
 	int newParticleNumber = randInt(50, 60);
 	for (int i = 0; i < newParticleNumber; i++) {
-		snowParticle.position = glm::vec3(0.0f, 10.0f, 0.0f);
+		snowParticle.position = glm::vec3(randFloat(-1.0f, 1.0f), 10.0f, randFloat(-1.0f, 1.0f));
 		snowParticle.speed = glm::vec3(randFloat(-1.0f, 1.0f), randFloat(-2.0f, -1.0f), randFloat(-1.0f, 1.0f));
 		snowParticle.lifespan = mParticleLifespan;
-		snowParticle.bounced = false;
 		CreateParticle(snowParticle);
 	}
 
@@ -133,12 +130,6 @@ void ParticleSystem::Update(GLfloat deltatime) {
 			
 			p->speed.y -= gravity * deltatime;
 			
-			//if (p->position.y < 0 && !p->bounced) {
-			//	p->bounced = true;
-			//	p->speed.y *= -randFloat(0.4f, 0.7f);
-			//	p->speed.x *= randFloat(0.6f, 0.9f);
-			//	p->speed.z *= randFloat(0.6f, 0.9f);
-			//}
 			if (p->lifespan <= 0 || p->position.y < -10.0f) {
 				DestroyParticle(i);
 			}
@@ -151,8 +142,6 @@ void ParticleSystem::Update(GLfloat deltatime) {
 void ParticleSystem::RenderParticle(const SnowParticle &p) {
 	glm::mat4 model = glm::mat4(1.0f);
 	model = glm::translate(model, p.position);
-	//model = glm::rotate(model, randFloat(0.0f, 180), glm::vec3(1.0f, 0.0f, 0.0f));
-	//model = glm::rotate(model, randFloat(0.0f, 180), glm::vec3(0.0f, 1.0f, 0.0f));
 	model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
 
 	shader.use();
@@ -160,7 +149,7 @@ void ParticleSystem::RenderParticle(const SnowParticle &p) {
 	glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
 	glm::mat4 projection = glm::mat4(1.0f);
 
-	projection = glm::perspective(glm::radians(45.0f), (float)1, 0.1f, 100.0f);
+	projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
 	
 	shader.setMat4("model", model);
 	shader.setMat4("view", view);
